@@ -202,3 +202,43 @@ def find_mismatches(output_folder):
     df = pd.concat([pd.DataFrame(data) for data in mismatches_data])
 
     return df
+
+
+def detect_phase_variations(genomes_csv, lst_info_file, fasta_file, selection_condition):
+    """
+    Detect phase variations in gene sequences based on specified conditions.
+
+    Args:
+        genomes_csv (str): Path to the CSV file containing genome information.
+        lst_info_file (str): Path to the LSTINFO file containing additional information.
+        fasta_file (str): Path to the FASTA file containing gene sequences.
+        selection_condition (str or list of str): Selection condition(s) for filtering gene pairs.
+    """
+    data_2 = process_info_files(genomes_csv, lst_info_file)
+    genes_df = convert_fasta_to_dataframe(fasta_file)
+    input_table = process_dataframes(genes_df, data_2)
+
+    if isinstance(selection_condition, list):
+        for condition in selection_condition:
+            condition_rows = input_table[input_table['species'].str.contains(condition, na=False)]
+            create_gene_pairs_folders(condition_rows, condition)
+            input_folder = f"{condition.replace(' ', '_')}_pairs"
+            output_folder = f"{condition.replace(' ', '_')}_pairs_aligned"
+            align_sequences(input_folder, output_folder)
+            mismatches_df = find_mismatches(output_folder)
+            mismatches_df.to_csv(f'{condition}_mismatches.csv', index=False)
+    else:
+        condition_rows = input_table[input_table['species'].str.contains(selection_condition, na=False)]
+        create_gene_pairs_folders(condition_rows, selection_condition)
+        input_folder = f"{selection_condition.replace(' ', '_')}_pairs"
+        output_folder = f"{selection_condition.replace(' ', '_')}_pairs_aligned"
+        align_sequences(input_folder, output_folder)
+        mismatches_df = find_mismatches(output_folder)
+        mismatches_df.to_csv(f'{selection_condition}_mismatches.csv', index=False)
+
+# Входные данные:
+genomes_csv_path = 'raw_data/genomesNames.csv'
+lst_info_file_path = 'raw_data/LSTINFO-LSTINFO-NA-filtered-0.0001_0.6.lst'
+fasta_file_path = 'raw_data/HxxHxHHits820SeqsGenes.fasta'
+selection_condition = ['Streptococcus porcinus', 'Streptococcus gordonii']
+detect_phase_variations(genomes_csv_path, lst_info_file_path, fasta_file_path, selection_condition)
