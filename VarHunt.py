@@ -139,3 +139,66 @@ def align_sequences(input_folder, output_folder):
 
             #После каждого выравнивания вызываем функцию для анализа мисмэтчей
             find_mismatches(output_folder)
+
+def find_mismatches(output_folder):
+    """
+    Find mismatches in aligned sequences and generate a DataFrame.
+
+    Args:
+        output_folder (str): Path to the folder containing aligned sequences.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing mismatch information.
+    """
+    mismatches_data = []
+
+    # Проходим по всем файлам в папке output_folder
+    for filename in os.listdir(output_folder):
+        if filename.endswith('.fasta'):
+            aligned_file = os.path.join(output_folder, filename)
+            
+            # Открываем файл с выравниванием
+            alignment = AlignIO.read(aligned_file, 'fasta')
+            
+            # Получаем длину выравнивания
+            alignment_length = alignment.get_alignment_length()
+
+            # Разделяем длину на 20 сегментов
+            segment_length = alignment_length // 20
+
+            # Инициализируем список для хранения данных о мисматчах
+            file_mismatches_data = {'File': [], 'Segment': [], 'Mismatch_Count': []}
+
+            # Проходим по выравниванию с окном длиной segment_length
+            for i in range(0, alignment_length, segment_length):
+                # Инициализируем счетчик мисматчей для текущего сегмента
+                mismatch_count = 0
+
+                # Проходим по каждой позиции в сегменте и сравниваем символы в выравниваниях
+                for j in range(segment_length):
+                    # Проверяем, что индексы не выходят за пределы длины выравнивания
+                    if i + j < alignment_length:
+                        # Получаем символы из каждого выравнивания
+                        symbol1 = alignment[0, i + j]
+                        symbol2 = alignment[1, i + j]
+                        
+                        # Если символы не совпадают, увеличиваем счетчик мисматчей
+                        if symbol1 != symbol2:
+                            mismatch_count += 1
+
+                # Добавляем данные о мисматчах для текущего сегмента в список
+                file_mismatches_data['File'].append(filename)
+                file_mismatches_data['Segment'].append(i // segment_length + 1)  # Нумерация с 1
+                file_mismatches_data['Mismatch_Count'].append(mismatch_count)
+                create dataframe df
+                file_mismatches_data['File'].unique names put for strings and print names in first row
+                file_mismatches_data['Segment'] fins max and write segments as columns names
+                dataframes data = file_mismatches_data['Mismatch_Count']
+                
+            # Добавляем данные о мисматчах для текущего файла в общий список
+            mismatches_data.append(file_mismatches_data)
+
+    # Создаем DataFrame для хранения всех данных о мисматчах
+    df = pd.concat([pd.DataFrame(data) for data in mismatches_data])
+
+    return df
