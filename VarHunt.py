@@ -24,3 +24,38 @@ def process_info_files(genomes_csv, lst_info_file):
     data_2 = pd.merge(data_1, genome_names, on='GCF')
 
     return data_2
+
+def convert_fasta_to_dataframe(file_name):
+    """
+    Convert a FASTA file to a pandas DataFrame.
+
+    Args:
+        file_name (str): Path to the input FASTA file.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing gene sequences and related information.
+    """
+    dic = {}
+    cur_scaf = ''
+    cur_seq = []
+
+    for line in open(file_name):
+        if line.startswith(">") and cur_scaf == '':
+            cur_scaf = line.split(' ')[0][1:]
+        elif line.startswith(">") and cur_scaf != '':
+            dic[cur_scaf] = ''.join(cur_seq)
+            cur_scaf = line.split(' ')[0][1:]
+            cur_seq = []
+        else:
+            cur_seq.append(line.rstrip())
+
+    dic[cur_scaf] = ''.join(cur_seq)
+
+    names = dic.keys()
+    seqs = dic.values()
+
+    genes_dict = {'name': names, 'gene': seqs}
+    genes_df = pd.DataFrame.from_dict(genes_dict)
+    genes_df['gembase_name'] = genes_df['name'].str.extract(r'(STRP\.0423\.\d{5})', expand=True)
+
+    return genes_df
