@@ -76,3 +76,45 @@ def process_dataframes(genes_df, data_2):
     input_table = input_table[~input_table['species'].str.contains(' sp.')]
 
     return input_table
+
+def create_gene_pairs_folders(condition_rows, selection_condition):
+    """
+    Create folders and save gene pairs based on specified conditions.
+
+    Args:
+        condition_rows (pandas.DataFrame): DataFrame containing gene pairs.
+        selection_condition (str): Selection condition for filtering gene pairs.
+    """
+    # Создаем папку для сохранения пар
+    output_folder = f"{selection_condition.replace(' ', '_')}_pairs"
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Получаем количество строк в DataFrame
+    num_rows = len(condition_rows)
+
+    # Проходим по каждой строке в DataFrame
+    for i in range(num_rows):
+        for j in range(i + 1, num_rows):
+            # Получаем значения из пары
+            name1, name2 = condition_rows.iloc[i]['name'], condition_rows.iloc[j]['name']
+            gcf1, gcf2 = condition_rows.iloc[i]['GCF'], condition_rows.iloc[j]['GCF']
+
+            # Проверяем, что значения из пары не совпадают и GCF у пары разные
+            if name1 != name2 and gcf1 != gcf2:
+                # Форматируем текст и создаем имя файла
+                row1 = condition_rows.iloc[i]
+                row2 = condition_rows.iloc[j]
+                
+                # Заменяем пробелы на нижнее подчеркивание
+                species1 = row1['species'].replace(' ', '_')
+                species2 = row2['species'].replace(' ', '_')
+
+                formatted_text = f">{row1['name']}_{row1['GCF']}_{species1}_{row1['strain']}\n{row1['gene']}\n"
+                formatted_text += f">{row2['name']}_{row2['GCF']}_{species2}_{row2['strain']}\n{row2['gene']}\n"
+                
+                # Создаем имя файла
+                filename = f"{output_folder}/{row1['name']}-{row2['name']}.fasta"
+
+                # Сохраняем пару в файл
+                with open(filename, 'w') as file:
+                    file.write(formatted_text)
