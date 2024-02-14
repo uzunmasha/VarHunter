@@ -118,3 +118,24 @@ def create_gene_pairs_folders(condition_rows, selection_condition):
                 # Сохраняем пару в файл
                 with open(filename, 'w') as file:
                     file.write(formatted_text)
+
+def align_sequences(input_folder, output_folder):
+    """
+    Align gene sequences in FASTA format using the MUSCLE algorithm.
+
+    Args:
+        input_folder (str): Path to the folder containing input FASTA files.
+        output_folder (str): Path to the folder for saving aligned sequences.
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    for filename in os.listdir(input_folder):
+        if filename.endswith('.fasta'):
+            input_path = os.path.join(input_folder, filename)
+            output_path = os.path.join(output_folder, f"aligned_{filename}")
+
+            command = f"muscle -align {input_path} -output {output_path}"
+            os.system(command)
+
+            #После каждого выравнивания вызываем функцию для анализа мисмэтчей
+            find_mismatches(output_folder)
