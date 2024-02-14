@@ -59,3 +59,20 @@ def convert_fasta_to_dataframe(file_name):
     genes_df['gembase_name'] = genes_df['name'].str.extract(r'(STRP\.0423\.\d{5})', expand=True)
 
     return genes_df
+
+def process_dataframes(genes_df, data_2):
+    """
+    Process DataFrames containing gene sequences and additional information.
+
+    Args:
+        genes_df (pandas.DataFrame): DataFrame containing gene sequences.
+        data_2 (pandas.DataFrame): DataFrame containing additional information.
+
+    Returns:
+        pandas.DataFrame: Processed DataFrame with merged data.
+    """
+    input_table = pd.merge(genes_df, data_2, on='gembase_name')
+    input_table = input_table[['name', 'GCF', 'species', 'strain', 'gene']]
+    input_table = input_table[~input_table['species'].str.contains(' sp.')]
+
+    return input_table
