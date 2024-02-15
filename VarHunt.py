@@ -1,6 +1,7 @@
 from Bio import AlignIO
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def process_info_files(genomes_csv, lst_info_file):
     """
@@ -140,16 +141,70 @@ def align_sequences(input_folder, output_folder):
             #После каждого выравнивания вызываем функцию для анализа мисмэтчей
             find_mismatches(output_folder)
 
+# def find_mismatches(output_folder):
+#     """
+#     Find mismatches in aligned sequences and generate a DataFrame.
+
+#     Args:
+#         output_folder (str): Path to the folder containing aligned sequences.
+
+#     Returns:
+#         pandas.DataFrame: DataFrame containing mismatch information.
+#     """
+#     mismatches_data = []
+
+#     # Проходим по всем файлам в папке output_folder
+#     for filename in os.listdir(output_folder):
+#         if filename.endswith('.fasta'):
+#             aligned_file = os.path.join(output_folder, filename)
+            
+#             # Открываем файл с выравниванием
+#             alignment = AlignIO.read(aligned_file, 'fasta')
+            
+#             # Получаем длину выравнивания
+#             alignment_length = alignment.get_alignment_length()
+
+#             # Разделяем длину на 20 сегментов
+#             segment_length = alignment_length // 20
+
+#             # Инициализируем список для хранения данных о мисматчах
+#             file_mismatches_data = {'File': [], 'Segment': [], 'Mismatch_Count': []}
+
+#             # Проходим по выравниванию с окном длиной segment_length
+#             for i in range(0, alignment_length, segment_length):
+#                 # Инициализируем счетчик мисматчей для текущего сегмента
+#                 mismatch_count = 0
+
+#                 # Проходим по каждой позиции в сегменте и сравниваем символы в выравниваниях
+#                 for j in range(segment_length):
+#                     # Проверяем, что индексы не выходят за пределы длины выравнивания
+#                     if i + j < alignment_length:
+#                         # Получаем символы из каждого выравнивания
+#                         symbol1 = alignment[0, i + j]
+#                         symbol2 = alignment[1, i + j]
+                        
+#                         # Если символы не совпадают, увеличиваем счетчик мисматчей
+#                         if symbol1 != symbol2:
+#                             mismatch_count += 1
+
+#                 # Добавляем данные о мисматчах для текущего сегмента в список
+#                 # file_mismatches_data['File'].append(filename)
+#                 # file_mismatches_data['Segment'].append(i // segment_length + 1)  # Нумерация с 1
+#                 # file_mismatches_data['Mismatch_Count'].append(mismatch_count)
+#                 # create dataframe df
+#                 # file_mismatches_data['File'].unique names put for strings and print names in first row
+#                 # file_mismatches_data['Segment'] fins max and write segments as columns names
+#                 # dataframes data = file_mismatches_data['Mismatch_Count']
+                
+#             # Добавляем данные о мисматчах для текущего файла в общий список
+#             mismatches_data.append(file_mismatches_data)
+
+#     # Создаем DataFrame для хранения всех данных о мисматчах
+#     df = pd.concat([pd.DataFrame(data) for data in mismatches_data])
+
+#     return df
+            
 def find_mismatches(output_folder):
-    """
-    Find mismatches in aligned sequences and generate a DataFrame.
-
-    Args:
-        output_folder (str): Path to the folder containing aligned sequences.
-
-    Returns:
-        pandas.DataFrame: DataFrame containing mismatch information.
-    """
     mismatches_data = []
 
     # Проходим по всем файлам в папке output_folder
@@ -165,9 +220,6 @@ def find_mismatches(output_folder):
 
             # Разделяем длину на 20 сегментов
             segment_length = alignment_length // 20
-
-            # Инициализируем список для хранения данных о мисматчах
-            file_mismatches_data = {'File': [], 'Segment': [], 'Mismatch_Count': []}
 
             # Проходим по выравниванию с окном длиной segment_length
             for i in range(0, alignment_length, segment_length):
@@ -187,21 +239,49 @@ def find_mismatches(output_folder):
                             mismatch_count += 1
 
                 # Добавляем данные о мисматчах для текущего сегмента в список
-                file_mismatches_data['File'].append(filename)
-                file_mismatches_data['Segment'].append(i // segment_length + 1)  # Нумерация с 1
-                file_mismatches_data['Mismatch_Count'].append(mismatch_count)
-                create dataframe df
-                file_mismatches_data['File'].unique names put for strings and print names in first row
-                file_mismatches_data['Segment'] fins max and write segments as columns names
-                dataframes data = file_mismatches_data['Mismatch_Count']
-                
-            # Добавляем данные о мисматчах для текущего файла в общий список
-            mismatches_data.append(file_mismatches_data)
-
-    # Создаем DataFrame для хранения всех данных о мисматчах
-    df = pd.concat([pd.DataFrame(data) for data in mismatches_data])
-
+                mismatches_data.append({'File': filename,
+                                        'Segment': i // segment_length + 1,
+                                        'Mismatch_Count': mismatch_count})
+    
+    # Создаем DataFrame из списка словарей
+    df = pd.DataFrame(mismatches_data)
+    
+    # Переворачиваем таблицу так, чтобы сегменты были столбцами
+    df = df.pivot(index='File', columns='Segment', values='Mismatch_Count')
+    
     return df
+
+def mismatch_imaging(file_name:str):
+    df = pd.read_csv(file_name)
+    df.name = file_name[:-len('_mismatches.csv')]
+
+    condition = f'{df.name}'
+    folder_name = f'{condition}_plots'
+    os.mkdir(folder_name)
+
+    for index, row in df.iterrows():
+        # Получим название из первого столбца
+        title = row.iloc[0]
+
+        # Получим значения точек из остальных столбцов
+        values = row.iloc[1:].values
+
+        # Сгенерируем список с номерами точек
+        indexes = list(range(1, len(values) + 1))
+
+        # Создаем график
+        plt.plot(indexes, values, marker='o')
+
+        # Подписали оси и заголовки графика
+        plt.xlabel('Number of windows size=20')
+        plt.ylabel('Number of mismatches')
+        plt.title(f'{title}')
+
+        filename = f'{folder_name}/{title[len('aligned_'):-len('.fasta')]}.png'
+        plt.savefig(filename)
+
+        # Очистим текущую фигуру
+        plt.clf()
 
 
 def detect_phase_variations(genomes_csv, lst_info_file, fasta_file, selection_condition):
@@ -226,7 +306,8 @@ def detect_phase_variations(genomes_csv, lst_info_file, fasta_file, selection_co
             output_folder = f"{condition.replace(' ', '_')}_pairs_aligned"
             align_sequences(input_folder, output_folder)
             mismatches_df = find_mismatches(output_folder)
-            mismatches_df.to_csv(f'{condition}_mismatches.csv', index=False)
+            mismatches_df.to_csv(f'{condition}_mismatches.csv', index=True)
+            mismatch_imaging(f'{condition}_mismatches.csv')
     else:
         condition_rows = input_table[input_table['species'].str.contains(selection_condition, na=False)]
         create_gene_pairs_folders(condition_rows, selection_condition)
@@ -234,7 +315,8 @@ def detect_phase_variations(genomes_csv, lst_info_file, fasta_file, selection_co
         output_folder = f"{selection_condition.replace(' ', '_')}_pairs_aligned"
         align_sequences(input_folder, output_folder)
         mismatches_df = find_mismatches(output_folder)
-        mismatches_df.to_csv(f'{selection_condition}_mismatches.csv', index=False)
+        mismatches_df.to_csv(f'{selection_condition}_mismatches.csv', index=True)
+        mismatch_imaging(f'{selection_condition}_mismatches.csv')
 
 # Входные данные:
 genomes_csv_path = 'raw_data/genomesNames.csv'
