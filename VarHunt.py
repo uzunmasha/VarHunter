@@ -1,5 +1,6 @@
 from Bio import AlignIO
 import os
+import multiprocessing
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -167,7 +168,7 @@ def find_mismatches(output_folder):
 
     # Проходим по всем файлам в папке output_folder
     for filename in os.listdir(output_folder):
-        if filename.endswith('.fasta'):
+        if filename.endswith('.fas'):
             aligned_file = os.path.join(output_folder, filename)
             
             # Открываем файл с выравниванием
@@ -195,11 +196,14 @@ def find_mismatches(output_folder):
                         # Если символы не совпадают, увеличиваем счетчик мисматчей
                         if symbol1 != symbol2:
                             mismatch_count += 1
+                
+                # Вычисляем количество мисмэтчей в текущем сегменте, поделенное на длину сегмента
+                mismatch_ratio = mismatch_count / segment_length * 100
 
                 # Добавляем данные о мисматчах для текущего сегмента в список
                 mismatches_data.append({'File': filename,
                                         'Segment': i // segment_length + 1,
-                                        'Mismatch_Count': mismatch_count})
+                                        'Mismatch_Count': mismatch_ratio})
     
     # Создаем DataFrame из списка словарей
     df = pd.DataFrame(mismatches_data)
@@ -209,13 +213,17 @@ def find_mismatches(output_folder):
     
     return df
 
+
 def mismatch_imaging(file_name:str):
     df = pd.read_csv(file_name)
     df.name = file_name[:-len('_mismatches.csv')]
 
     condition = f'{df.name}'
     folder_name = f'{condition}_plots'
-    os.mkdir(folder_name)
+    os.makedirs(folder_name, exist_ok=True)
+
+    # Найдем максимальное значение на всем диапазоне графиков для установки общего предела оси y
+    max_value = df.iloc[:, 1:].max().max()
 
     for index, row in df.iterrows():
         # Получим название из первого столбца
@@ -232,8 +240,11 @@ def mismatch_imaging(file_name:str):
 
         # Подписали оси и заголовки графика
         plt.xlabel('Number of windows size=20')
-        plt.ylabel('Number of mismatches')
+        plt.ylabel('Mismatch Ratio % (Mismatch Count / Segment Length)')
         plt.title(f'{title}')
+
+        # Установим общий предел для оси y
+        plt.ylim(0, max_value)
 
         filename = f'{folder_name}/{title[len('aligned_'):-len('.fasta')]}.png'
         plt.savefig(filename)
