@@ -245,6 +245,7 @@ def mismatch_imaging(file_name:str):
 
         # Установим общий предел для оси y
         plt.ylim(0, max_value)
+        plt.xticks(range(1, 20))
 
         filename = f'{folder_name}/{title[len('aligned_'):-len('.fasta')]}.png'
         plt.savefig(filename)
