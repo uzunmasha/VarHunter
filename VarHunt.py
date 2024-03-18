@@ -495,7 +495,6 @@ def find_variation_in_df(input_df:pd.DataFrame, start_pos:int, stop_pos:int, dir
     genes_pairs_names = input_df_test_true.File.to_list()
     
     output_df = pd.DataFrame(columns=['genome_A','genome_B', 'gene_1A', 'gene_1B', 'gene_2A', 'gene_2B'])
-    ans = []
     for genes_pair in genes_pairs_names:
         phase_variation = find_variation(input_df, genes_pair, dir_name)
 
@@ -512,8 +511,8 @@ def find_variation_in_df(input_df:pd.DataFrame, start_pos:int, stop_pos:int, dir
                     }
                 ])
                 output_df = pd.concat([output_df, row_to_append], ignore_index=True)
-        new_outpu_df =  output_df[output_df.index % 4 == 0]
-    return new_outpu_df
+        new_output_df =  output_df[output_df.index % 4 == 0]
+    return new_output_df.drop_duplicates(inplace=False)
 
 
 def detect_phase_variations(genomes_csv, lst_info_file, fasta_file, selection_condition):
